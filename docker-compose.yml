@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  weather-app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - WEATHER_API_KEY=df173eb3e8884223b5d132352251502
+      - PORT=8080
