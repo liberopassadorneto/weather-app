@@ -50,7 +50,7 @@ func weatherHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cepURL := fmt.Sprintf("https://viacep.com.br/ws/%s/json/", zipcode)
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 100 * time.Second}
 	resp, err := client.Get(cepURL)
 	if err != nil {
 		http.Error(w, "error querying CEP", http.StatusInternalServerError)
