@@ -49,7 +49,8 @@ func weatherHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"message": "invalid zipcode"})
 		return
 	}
-	cepURL := fmt.Sprintf("https://viacep.com.br/ws/%s/json/", zipcode)
+	encodedZipCode := url.QueryEscape(zipcode)
+	cepURL := fmt.Sprintf("https://viacep.com.br/ws/%s/json/", encodedZipCode)
 	client := &http.Client{Timeout: 100 * time.Second}
 	resp, err := client.Get(cepURL)
 	if err != nil {
