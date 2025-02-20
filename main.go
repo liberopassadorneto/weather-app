@@ -9,6 +9,8 @@ import (
 	"os"
 	"regexp"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type CepResponse struct {
@@ -29,24 +31,23 @@ type WeatherResult struct {
 }
 
 func main() {
-	http.HandleFunc("/weather", weatherHandler)
+	router := gin.Default()
+	router.GET("/weather", weatherHandler)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 	fmt.Printf("Server running on port %s\n", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := router.Run(":" + port); err != nil {
 		panic(err)
 	}
 }
 
-func weatherHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	zipcode := r.URL.Query().Get("cep")
+func weatherHandler(c *gin.Context) {
+	zipcode := c.Query("cep")
 	valid, _ := regexp.MatchString(`^\d{8}$`, zipcode)
 	if !valid {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(map[string]string{"message": "invalid zipcode"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "invalid zipcode"})
 		return
 	}
 	encodedZipCode := url.QueryEscape(zipcode)
@@ -54,56 +55,54 @@ func weatherHandler(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{Timeout: 100 * time.Second}
 	resp, err := client.Get(cepURL)
 	if err != nil {
-		http.Error(w, "error querying CEP", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error querying CEP"})
 		return
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, "error reading CEP response", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error reading CEP response"})
 		return
 	}
 	var cepData CepResponse
 	if err := json.Unmarshal(body, &cepData); err != nil {
-		http.Error(w, "error processing CEP response", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error processing CEP response"})
 		return
 	}
 	if cepData.Error || cepData.City == "" {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"message": "can not find zipcode"})
+		c.JSON(http.StatusNotFound, gin.H{"message": "can not find zipcode"})
 		return
 	}
 	weatherAPIKey := os.Getenv("WEATHER_API_KEY")
 	if weatherAPIKey == "" {
-		http.Error(w, "WeatherAPI key not configured", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "WeatherAPI key not configured"})
 		return
 	}
 	encodedCity := url.QueryEscape(cepData.City)
 	weatherURL := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s", weatherAPIKey, encodedCity)
 	weatherResp, err := client.Get(weatherURL)
 	if err != nil {
-		http.Error(w, "error querying WeatherAPI", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error querying WeatherAPI"})
 		return
 	}
 	defer weatherResp.Body.Close()
 	weatherBody, err := io.ReadAll(weatherResp.Body)
 	if err != nil {
-		http.Error(w, "error reading WeatherAPI response", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error reading WeatherAPI response"})
 		return
 	}
 	var weatherData WeatherResponse
 	if err := json.Unmarshal(weatherBody, &weatherData); err != nil {
-		http.Error(w, "error processing WeatherAPI response", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error processing WeatherAPI response"})
 		return
 	}
 	tempC := weatherData.Current.TempC
 	tempF := tempC*1.8 + 32
-	tempK := tempC + 273
+	tempK := tempC + 273.15
 	result := WeatherResult{
 		TempC: tempC,
 		TempF: tempF,
 		TempK: tempK,
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(result)
+	c.JSON(http.StatusOK, result)
 }
