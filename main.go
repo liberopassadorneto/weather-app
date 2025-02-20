@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"time"
@@ -76,7 +77,8 @@ func weatherHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "WeatherAPI key not configured", http.StatusInternalServerError)
 		return
 	}
-	weatherURL := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s", weatherAPIKey, cepData.City)
+	encodedCity := url.QueryEscape(cepData.City)
+	weatherURL := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s", weatherAPIKey, encodedCity)
 	weatherResp, err := client.Get(weatherURL)
 	if err != nil {
 		http.Error(w, "error querying WeatherAPI", http.StatusInternalServerError)
