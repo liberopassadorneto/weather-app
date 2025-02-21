@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,7 +33,6 @@ type WeatherResult struct {
 	TempK float64 `json:"temp_K"`
 }
 
-// Configura o Logrus para JSON
 func setupLogger() *logrus.Logger {
 	log := logrus.New()
 	log.SetFormatter(&logrus.JSONFormatter{})
@@ -65,13 +65,17 @@ func weatherHandler(c *gin.Context) {
 	}
 	encodedZipCode := url.QueryEscape(zipcode)
 	cepURL := fmt.Sprintf("https://viacep.com.br/ws/%s/json/", encodedZipCode)
-	client := &http.Client{Timeout: 300 * time.Second}
+	client := &http.Client{
+		Timeout: 300 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}}
 	resp, err := client.Get(cepURL)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"cep":   cepURL,
 			"error": err.Error(),
-		}).Error("Falha ao consultar ViaCEP")
+		}).Error("ViaCEP Error")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "error querying CEP"})
 		return
 	}
