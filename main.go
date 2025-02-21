@@ -70,7 +70,7 @@ func weatherHandler(c *gin.Context) {
 		log.WithFields(logrus.Fields{
 			"cep":   cepURL,
 			"error": err.Error(),
-		}).Error("ViaCEP Error")
+		}).Error("error.viacep.querying.cep")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "error querying CEP"})
 		return
 	}
@@ -82,6 +82,9 @@ func weatherHandler(c *gin.Context) {
 	}
 	var cepData CepResponse
 	if err := json.Unmarshal(body, &cepData); err != nil {
+		log.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("error.viacep.processing.response")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "error processing CEP response"})
 		return
 	}
