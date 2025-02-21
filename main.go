@@ -93,7 +93,7 @@ func weatherHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "error processing CEP response"})
 		return
 	}
-	if cepData.Error || cepData.City == "" {
+	if len(cepData.Error) > 0 || cepData.City == "" {
 		c.JSON(http.StatusNotFound, gin.H{"message": "can not find zipcode"})
 		return
 	}
