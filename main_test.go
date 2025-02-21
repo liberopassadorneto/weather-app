@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 type mockRoundTripper struct{}
@@ -35,9 +37,17 @@ func (mrt *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func TestInvalidZipcode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.Default()
+	router.GET("/weather", weatherHandler)
+
 	req := httptest.NewRequest("GET", "/weather?cep=123", nil)
 	rr := httptest.NewRecorder()
-	weatherHandler(rr, req)
+	c, _ := gin.CreateTestContext(rr)
+	c.Request = req
+
+	router.ServeHTTP(rr, req)
+
 	if rr.Code != http.StatusUnprocessableEntity {
 		t.Errorf("expected status %d, got %d", http.StatusUnprocessableEntity, rr.Code)
 	}
@@ -55,9 +65,18 @@ func TestValidWeather(t *testing.T) {
 	defer func() { http.DefaultTransport = originalTransport }()
 	http.DefaultTransport = &mockRoundTripper{}
 	os.Setenv("WEATHER_API_KEY", "dummy")
+
+	gin.SetMode(gin.TestMode)
+	router := gin.Default()
+	router.GET("/weather", weatherHandler)
+
 	req := httptest.NewRequest("GET", "/weather?cep=12345678", nil)
 	rr := httptest.NewRecorder()
-	weatherHandler(rr, req)
+	c, _ := gin.CreateTestContext(rr)
+	c.Request = req
+
+	router.ServeHTTP(rr, req)
+
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, rr.Code)
 	}
