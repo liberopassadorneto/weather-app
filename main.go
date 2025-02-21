@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,6 +31,17 @@ type WeatherResult struct {
 	TempF float64 `json:"temp_F"`
 	TempK float64 `json:"temp_K"`
 }
+
+// Configura o Logrus para JSON
+func setupLogger() *logrus.Logger {
+	log := logrus.New()
+	log.SetFormatter(&logrus.JSONFormatter{})
+	log.SetOutput(os.Stdout)
+	log.SetLevel(logrus.InfoLevel)
+	return log
+}
+
+var log = setupLogger()
 
 func main() {
 	router := gin.Default()
@@ -56,7 +68,10 @@ func weatherHandler(c *gin.Context) {
 	client := &http.Client{Timeout: 300 * time.Second}
 	resp, err := client.Get(cepURL)
 	if err != nil {
-		log.Println("Erro ao fazer requisição:", err)
+		log.WithFields(logrus.Fields{
+			"cep":   cepURL,
+			"error": err.Error(),
+		}).Error("Falha ao consultar ViaCEP")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "error querying CEP"})
 		return
 	}
