@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -52,9 +53,10 @@ func weatherHandler(c *gin.Context) {
 	}
 	encodedZipCode := url.QueryEscape(zipcode)
 	cepURL := fmt.Sprintf("https://viacep.com.br/ws/%s/json/", encodedZipCode)
-	client := &http.Client{Timeout: 100 * time.Second}
+	client := &http.Client{Timeout: 300 * time.Second}
 	resp, err := client.Get(cepURL)
 	if err != nil {
+		log.Println("Erro ao fazer requisição:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "error querying CEP"})
 		return
 	}
