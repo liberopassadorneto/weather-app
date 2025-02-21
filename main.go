@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -64,7 +65,11 @@ func weatherHandler(c *gin.Context) {
 	}
 	encodedZipCode := url.QueryEscape(zipcode)
 	cepURL := fmt.Sprintf("https://viacep.com.br/ws/%s/json/", encodedZipCode)
-	client := &http.Client{Timeout: 100 * time.Second}
+	client := &http.Client{
+		Timeout: 100 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+	}
 	resp, err := client.Get(cepURL)
 	if err != nil {
 		log.WithFields(logrus.Fields{
