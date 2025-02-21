@@ -17,8 +17,8 @@ import (
 )
 
 type CepResponse struct {
-	City  string `json:"localidade"`
-	Error bool   `json:"erro,omitempty"`
+	City  string          `json:"localidade"`
+	Error json.RawMessage `json:"erro,omitempty"`
 }
 
 type WeatherResponse struct {
