@@ -1,5 +1,7 @@
 FROM golang:1.20 as builder
 
+RUN apk --no-cache add ca-certificates
+
 WORKDIR /app
 
 COPY go.mod ./
